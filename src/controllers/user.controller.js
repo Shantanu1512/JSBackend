@@ -6,13 +6,16 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 
 const generateRefreshAndAccessTokens = async(userId) => {
     try {
-        const user = User.findById(userId)
-        const refreshToken = user.genarateRefreshToken()
-        const accessToken = user.generateAccessToken()
+        const user = await User.findById(userId)
+        console.log(user)
+        const refreshToken = await user.genarateRefreshToken()
+        const accessToken = await user.generateAccessToken()
+        // console.log(refreshToken)
+        // console.log(accessToken)
 
         user.refreshToken = refreshToken
         await user.save({validateBeforeSave: false})
-
+        // console.log(refreshToken)
         return { refreshToken, accessToken }
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating access and refresh tokens!!")
@@ -121,35 +124,36 @@ const loginUser = asyncHandler( async( req, res) => {
     }
 
     const { refreshToken, accessToken } = await generateRefreshAndAccessTokens(user._id)
-
-    const loggedInUser = User.findById(user._id).select("-password -refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
         httpOnly: true,
         secure: true
     }
 
+        // console.log(loggedInUser)
+
     return res
             .status(200)
             .cookie("accessToken", accessToken, options)
             .cookie("refreshToken", refreshToken, options)
             .json(
-                200,
+                new ApiResponse(200,
                 {
                     user: loggedInUser,
                     accessToken,
                     refreshToken
                 },
-                "User logged in successfully !! Welcome to application."
+                "User logged in successfully !! Welcome to application.")
             )
 })
 
 const logoutUser = asyncHandler( async(req, res) => {
-    await User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -157,6 +161,7 @@ const logoutUser = asyncHandler( async(req, res) => {
         }
     )
 
+    console.log("UserController LogoutMethod", user)
     const options = {
         httpOnly: true,
         secure: true
