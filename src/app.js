@@ -44,7 +44,7 @@ but now we have separated wvwerything in separate files
 so we are now using middlewares to declare routes
 */ 
 
-app.use("/users", userRouter)
+app.use("/api/v1/users", userRouter)
 
 
 export { app }
