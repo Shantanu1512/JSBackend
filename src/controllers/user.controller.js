@@ -17,11 +17,10 @@ const generateRefreshAndAccessTokens = async(userId) => {
 
         user.refreshToken = refreshToken
         await user.save({validateBeforeSave: false})
-        // console.log(refreshToken)
         return { refreshToken, accessToken }
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating access and refresh tokens!!")
-    }
+    }    
 }
 
 const registerUser = asyncHandler( async (req, res) => {
@@ -199,7 +198,7 @@ const refreshAccessToken = asyncHandler( async( req, res) => {
             throw new ApiError(401, "Refresh Token expired or used!!!")
         }
     
-        const { accessToken, newRefreshToken } = await generateRefreshAndAccessTokens(user._id)
+        const { refreshToken, accessToken } = await generateRefreshAndAccessTokens(user._id)
     
         const options = {
             httpOnly: true,
@@ -209,11 +208,11 @@ const refreshAccessToken = asyncHandler( async( req, res) => {
         return res
             .status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
+            .cookie("refreshToken", refreshToken, options)
             .json(
                 new ApiResponse(
                     201, 
-                    {accessToken, refreshToken: newRefreshToken},
+                    {accessToken, newRefreshToken: refreshToken},
                     "Access token refreshed successfully"
                 )
             )
@@ -245,9 +244,7 @@ const getCurrentUser = asyncHandler( async(req, res) =>{
     return res
         .status(200)
         .json(
-            200,
-            req.user,
-            "Current user returned successfully!!"
+            new ApiResponse(200, req.user, "User retrieved successfully")
         )
 })
 
@@ -258,11 +255,29 @@ const updateUserAvatar = asyncHandler( async(req, res) =>{
         throw new ApiError(400, "Avatar file path is wrong!!")
     }
 
-    const avatar = uploadOnCloudinary(avatarLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    console.log(avatar.url);
 
     if(!avatar.url){
         throw new ApiError(400, "Error while uploading on avatar !!")
     }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                avatar: avatar.url
+            }
+        },
+        {new: true}
+    ).select("-password")
+
+    return res
+            .status(200)
+            .json(
+                new ApiResponse(200, user, "Avatar updated successfully...")
+            )
 })
 
 const updateCoverImage = asyncHandler( async(req, res) =>{
@@ -272,27 +287,47 @@ const updateCoverImage = asyncHandler( async(req, res) =>{
         throw new ApiError(400, "Cover Image path is wrong!!")
     }
 
-    const coverImage = uploadOnCloudinary(coverImagePath)
+    // console.log("COVER IMAGE PATh",coverImagePath)
+
+    const coverImage = await uploadOnCloudinary(coverImagePath)
+
+    // console.log("Cover Image patha ",coverImage.url);
  
     if(!coverImage.url){
         throw new ApiError(400, "Error while uploading on cover image !!")
     }
 
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        { 
+            $set:{
+                coverImage: coverImage.url
+            }
+        },{new: true}
+    ).select("-password")
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, user, "Cover Image updated successfully....")
+        )
 
 })
 
 const getUserChannelProfile = asyncHandler( async(req, res) =>{
 
-    const {userName} = req.params
+    const {username} = req.params
 
-    if(!userName?.trim()){
+    // console.log((username));
+
+    if(!username?.trim()){
         throw new ApiError(400, "Username is missing!!")
     }
 
     const channel = await User.aggregate([
         {
             $match: {
-                userName: userName?.toLowerCase(),
+                userName: username?.toLowerCase(),
             }
         },
         {
@@ -342,7 +377,7 @@ const getUserChannelProfile = asyncHandler( async(req, res) =>{
         }
     ])
 
-    console.log(channel)
+    // console.log("Channel details",channel)
 
     if(!channel?.length){
         throw new ApiError(404, "Channel does not exists!!")
@@ -389,7 +424,7 @@ const getWatchHistory = asyncHandler( async(req, res) => {
                     {
                         $addFields: {
                             owner: {
-                                $first: "owner"
+                                $first: "$owner"
                             }
                         }
                     }
@@ -398,6 +433,7 @@ const getWatchHistory = asyncHandler( async(req, res) => {
         }
 ])
 
+console.log(user);
 return res
         .status(200)
         .json( 
