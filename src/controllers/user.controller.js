@@ -283,7 +283,7 @@ const updateUserAvatar = asyncHandler( async(req, res) =>{
 const updateCoverImage = asyncHandler( async(req, res) =>{
     const coverImagePath = req.file?.path
 
-    if(coverImagePath){
+    if(!coverImagePath){
         throw new ApiError(400, "Cover Image path is wrong!!")
     }
 
@@ -383,6 +383,7 @@ const getUserChannelProfile = asyncHandler( async(req, res) =>{
         throw new ApiError(404, "Channel does not exists!!")
     }
 
+    console.log("CHANNEL DETAILS",channel);
     return res
         .status(200)
         .json(
@@ -433,7 +434,7 @@ const getWatchHistory = asyncHandler( async(req, res) => {
         }
 ])
 
-console.log(user);
+console.log("USER DETAILS",user);
 return res
         .status(200)
         .json( 

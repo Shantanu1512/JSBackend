@@ -8,6 +8,8 @@ import {
     updateVideo
 } from "../controllers/video.controller.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
+import multer from "multer";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router()
 
