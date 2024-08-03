@@ -1,21 +1,30 @@
-import { Router } from "express";
-import { 
-        addComment,
-        updateComment,
-        deleteComment,
-        getVideoComment
-    } from "../controllers/comment.controller.js"
-import { verifyJWT } from "../middlewares/auth.middleware.js" 
+import { Router } from 'express';
+import {
+    addVideoToPlaylist,
+    createPlaylist,
+    deletePlaylist,
+    getPlaylistById,
+    getUserPlaylist,
+    removeVideoFromPlaylist,
+    updatePlaylist,
+} from "../controllers/playlist.controller.js"
+import {verifyJWT} from "../middlewares/auth.middleware.js"
 
 const router = Router();
 
-router.use(verifyJWT);
+router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
 
-router.route()
+router.route("/").post(createPlaylist)
 
+router
+    .route("/:playlistId")
+    .get(getPlaylistById)
+    .patch(updatePlaylist)
+    .delete(deletePlaylist);
 
-router.route("/:videoId").get(getVideoComments).post(addComment);
-router.route("/c/:commentId").delete(deleteComment).patch(updateComment);
+router.route("/add/:videoId/:playlistId").patch(addVideoToPlaylist);
+router.route("/remove/:videoId/:playlistId").patch(removeVideoFromPlaylist);
 
-export default router;
+router.route("/user/:userId").get(getUserPlaylist);
 
+export default router
