@@ -5,10 +5,58 @@ import { ApiError } from "../utils/ApiError.js"
 import { Video } from "../models/videos.models.js"
 import { Comments } from "../models/comment.models.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import { query } from "express"
 
 const getVideoComment = asyncHandler( async(req, res) =>{
+    /**
+     * get videoID from FE and checkif valid
+     * check if video exists
+     * check if video has comments
+     * implement pagination and limit
+     */
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
+
+    if(!mongoose.isValidObjectId(videoId)){
+        throw new ApiError(400, "Video id is not valid")
+    }
+
+    const video = await Video.findById(videoId)
+
+    if(!video){
+        throw new ApiError(400, "Video does not exists")
+    }
+
+    const pageCount = req.query.page *1 || 1
+    const limitCOunt = req.query.limit * 1 || 10
+
+    //page -1 show 0-10 || page -2 show 10-20 || page -3 show 20-30
+    const skip = (pageCount -1) * limit
+    // query =await query.skip(skip).limit(limitCOunt)
+    const comments = await Comments.find({video: videoId}).skip(skip).limit(limitCOunt)
+    if(!comments){
+        throw new ApiError(400, "There are no comment on video")
+    }
+
+   
+
+    if(req.query.page){
+        const totalDocuments = await Comments.countDocuments({ video: videoId });
+        console.log(totalDocuments);
+        
+        if(skip >= totalDocuments){
+            throw new ApiError(300, "THis page is not found")
+        }
+    }
+
+    const cmts = await query
+    console.log(cmts);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, comments, "COmments")
+        )
 })
 
 const addComment = asyncHandler( async(req, res) =>{
